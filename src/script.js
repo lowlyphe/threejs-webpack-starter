@@ -48,8 +48,8 @@ const hoopGeometry = new THREE.CylinderGeometry(5, 5, 20, 64);
 // Materials
 
 const golfMaterial = new THREE.MeshStandardMaterial(); //golf ball sphere
-golfMaterial.metalness = 0.7;
-golfMaterial.roughness = 0.09;
+golfMaterial.metalness = 0.85;
+golfMaterial.roughness = 0.04;
 golfMaterial.normalMap = golfNormalTexture;
 golfMaterial.color = new THREE.Color(0xffffff);
 

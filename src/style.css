@@ -9,7 +9,7 @@ body {
   font-family: "Poppins";
   background-image: linear-gradient(
     to right,
-    rgb(171, 105, 251),
+    rgb(99, 8, 255),
     rgb(123, 0, 255)
   );
 }
@@ -40,4 +40,11 @@ h1 {
 
 section {
   height: 100vh;
+}
+
+h3 {
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  display: grid;
+  place-items: center;
 }

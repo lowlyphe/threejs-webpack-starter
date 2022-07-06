@@ -7,8 +7,11 @@ import { PointLightHelper } from "three";
 //Loading
 const textureLoader = new THREE.TextureLoader();
 const golfNormalTexture = textureLoader.load("/textures/NormalMap.png");
-const concreteNormalTexture = textureLoader.load(
-  "/textures/concreteNormal.jpg"
+const basketballNormalTexture = textureLoader.load(
+  "/textures/basketballNormal.jpg"
+);
+const concreteShpereTexture = textureLoader.load(
+  "textures/BasketballColor.jpg"
 );
 const concreteHeight = textureLoader.load("/textures/concreteHeight.png");
 const cubeTexture = textureLoader.load("/textures/gemTexture.jpg", () => {
@@ -26,9 +29,9 @@ const cubeHeight = textureLoader.load("/textures/gemHeight.jpg", () => {
   cubeHeight.offset.set(0, 0);
   cubeHeight.repeat.set(2, 2);
 });
-
+const woodFloor = textureLoader.load("textures/woodFLoor.jpg");
+const hoopTexture = new textureLoader.load("textures/hoopTexture.jpg");
 // Debug
-const gui = new dat.GUI();
 
 // Canvas
 const canvas = document.querySelector("canvas.webgl");
@@ -38,8 +41,9 @@ const scene = new THREE.Scene();
 
 // Objects
 const golfGeometry = new THREE.SphereBufferGeometry(0.5, 64, 64);
-const concreteGeometry = new THREE.SphereBufferGeometry(0.5, 64, 64);
+const concreteGeometry = new THREE.SphereBufferGeometry(1, 64, 64);
 const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const hoopGeometry = new THREE.CylinderGeometry(5, 5, 20, 64);
 
 // Materials
 
@@ -49,17 +53,20 @@ golfMaterial.roughness = 0.09;
 golfMaterial.normalMap = golfNormalTexture;
 golfMaterial.color = new THREE.Color(0xffffff);
 
-const concreteMaterial = new THREE.MeshStandardMaterial(); //concrete looking sphere
-concreteMaterial.metalness = 0;
-concreteMaterial.roughness = 1;
-concreteMaterial.normalMap = concreteNormalTexture;
-concreteMaterial.displacementMap = concreteHeight;
-concreteMaterial.color = new THREE.Color(0x666666);
+const concreteMaterial = new THREE.MeshStandardMaterial({
+  map: concreteShpereTexture,
+}); //concrete looking sphere
+// concreteMaterial.metalness = 0;
+// concreteMaterial.roughness = 1;
+concreteMaterial.normalMap = basketballNormalTexture;
+// concreteMaterial.displacementMap = concreteHeight;
 
 const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
 cubeMaterial.map = cubeTexture;
 cubeMaterial.normalMap = cubeNormal;
 cubeMaterial.displacementMap = concreteHeight;
+
+const hoopMaterial = new THREE.MeshStandardMaterial({ map: hoopTexture });
 
 // Mesh
 const golfSphere = new THREE.Mesh(golfGeometry, golfMaterial);
@@ -71,10 +78,12 @@ const concreteSphere = new THREE.Mesh(concreteGeometry, concreteMaterial);
 scene.add(concreteSphere);
 concreteSphere.position.y = -3;
 const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-scene.add(cube);
 
-gui.add(concreteMaterial, "roughness");
-gui.add(concreteMaterial, "metalness");
+const hoop = new THREE.Mesh(hoopGeometry, hoopMaterial);
+hoop.scale.set(0.5, 0.5, 0.5);
+// scene.add(hoop);
+// scene.add(cube);
+
 // Lights
 
 const pointLight = new THREE.PointLight(0xffffff, 1);
@@ -87,11 +96,6 @@ const pointLight2 = new THREE.PointLight(0x00ffff, 1.5);
 pointLight2.position.set(-3.2, 1.8, -2.1);
 pointLight2.intensity = 0.2;
 scene.add(pointLight2);
-
-gui.add(pointLight2.position, "x");
-gui.add(pointLight2.position, "y");
-gui.add(pointLight2.position, "z");
-gui.add(pointLight2, "intensity");
 
 const pointLight3 = new THREE.PointLight(0xff0000, 1);
 pointLight3.position.set(5.6, -1.6, -5.2);
@@ -154,6 +158,16 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+// setting initial values for required parameters
+let acceleration = 9.8;
+let bounce_distance = 9;
+let bottom_position_y = -4;
+let time_step = 0.02;
+// time_counter is calculated to be the time the ball just reached the top position
+// this is simply calculated with the s = (1/2)gt*t formula, which is the case when ball is dropped from the top position
+let time_counter = Math.sqrt((bounce_distance * 2) / acceleration);
+let initial_speed = acceleration * time_counter;
+
 /**
  * Animate
  */
@@ -181,6 +195,19 @@ window.addEventListener("scroll", updateSphere);
 
 const clock = new THREE.Clock();
 
+//floor
+function addFloor(scene) {
+  let geometry = new THREE.BoxGeometry(50, 1, 50);
+  let material = new THREE.MeshStandardMaterial({
+    map: woodFloor,
+  });
+  const floor = new THREE.Mesh(geometry, material);
+  floor.position.set(0, -10, 0);
+  floor.name = "my-floor";
+  scene.add(floor);
+}
+addFloor(scene);
+
 const tick = () => {
   targetX = mouseX * 0.001;
   targetY = mouseY * 0.001;
@@ -193,7 +220,7 @@ const tick = () => {
   golfSphere.rotation.x += 0.05 * (targetY - golfSphere.rotation.x);
   golfSphere.position.z += -0.05 * (targetY - golfSphere.rotation.x);
 
-  concreteSphere.rotation.y = 0.5 * elapsedTime;
+  // concreteSphere.rotation.y = 0.5 * elapsedTime;
 
   concreteSphere.rotation.y += 0.5 * (targetX - concreteSphere.rotation.y);
   concreteSphere.rotation.x += 0.05 * (targetY - concreteSphere.rotation.x);
@@ -204,6 +231,19 @@ const tick = () => {
   cube.rotation.y += 0.5 * (targetX - cube.rotation.y);
   cube.rotation.x += 0.05 * (targetY - cube.rotation.x);
   cube.position.z += -0.05 * (targetY - cube.rotation.x);
+
+  // reset time_counter back to the start of the bouncing sequence when sphere hits through the bottom position
+  if (concreteSphere.position.y < bottom_position_y) {
+    time_counter = 0;
+  }
+  // calculate sphere position with the s2 = s1 + ut + (1/2)gt*t formula
+  // this formula assumes the ball to be bouncing off from the bottom position when time_counter is zero
+  concreteSphere.position.y =
+    bottom_position_y +
+    initial_speed * time_counter -
+    0.5 * acceleration * time_counter * time_counter;
+  // advance time
+  time_counter += time_step;
 
   // Render
   renderer.render(scene, camera);
